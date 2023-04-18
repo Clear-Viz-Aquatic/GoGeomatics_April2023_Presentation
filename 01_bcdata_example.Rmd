@@ -1,0 +1,78 @@
+---
+title: "bcdata example"
+output: html_notebook
+---
+
+
+
+```{r}
+library(bcdata)
+library(sf)
+library(ggplot2)
+```
+
+```{r, search for record idea for assesment watersheds}
+bcdc_search("Assessment Watersheds")
+```
+```{r}
+#fwa_grp=bcdc_query_geodata("51f20b1a-ab75-42de-809d-bf415a0f9c62") %>% collect()
+#fwa_grp %>% filter(WATERSHED_GROUP_NAME == "Okanagan River")
+```
+
+
+
+
+```{r, take a look at the data structure}
+bcdc_query_geodata(record="97d8ef37-b8d2-4c3b-b772-6b25c1db13d0")
+```
+```{r, download Bear Creek}
+mill_wat=bcdc_query_geodata(record="97d8ef37-b8d2-4c3b-b772-6b25c1db13d0") %>% 
+  filter(GNIS_NAME_1 == "Whiteman Creek" & WATERSHED_GROUP_ID == 161) %>% collect() %>%
+  slice_min(WATERSHED_MAGNITUDE) # selects the most upstream watershed
+mill_wat
+```
+
+
+```{r, map in leaflet}
+mill_wat_wgs=mill_wat %>% st_transform(crs=4326) # transform to WGS84
+leaflet(mill_wat_wgs) %>% addPolygons() %>% addTiles()
+```
+
+```{r}
+sa=mill_wat #this makes the code easily reusable down the line
+```
+
+```{r}
+bcdc_search("Historical Fire")
+```
+
+
+```{r, historical fires in this wastershed}
+hist_fire=bcdc_query_geodata(record="22c7cb44-1463-48f7-8e47-88857f207702") %>% 
+  filter(INTERSECTS(sa)) %>% collect() 
+hist_fire
+```
+
+```{r}
+ggplot(hist_fire)+geom_sf(aes(fill=factor(FIRE_YEAR)))
+```
+```{r, only interested in recent fires}
+rec_fire=hist_fire %>% filter(FIRE_YEAR >1950)
+
+```
+```{r, do a quick leaflet map}
+##?
+```
+
+
+```{r, forestry activites in the watershed}
+cons_cut=bcdc_query_geodata(record="b1b647a6-f271-42e0-9cd0-89ec24bce9f7") %>% 
+  filter(INTERSECTS(sa)) %>% collect() %>% st_intersection(sa)
+```
+
+
+```{r, map by harvest year}
+ggplot(cons_cut)+geom_sf(aes(fill=HARVEST_YEAR))+scale_fill_viridis_c()+geom_sf(data=sa,fill=NA)
+```
+
+
